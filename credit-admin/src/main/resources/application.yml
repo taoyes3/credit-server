@@ -1,0 +1,7 @@
+spring:
+  # 环境
+  profiles:
+    active: dev
+# mybatis-plus配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/*Mapper.xml
