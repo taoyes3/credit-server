@@ -25,10 +25,6 @@ public class SysMenuController {
 
     @GetMapping
     public ResponseEntity<List<SysMenu>> index() {
-        if (1==1) {
-            throw new CreditBindException("1==1");
-            //log.info("111");
-        }
         List<SysMenu> sysMenuList =  sysMenuService.listMenuAndBtn();
         return ResponseEntity.ok(sysMenuList);
     }
