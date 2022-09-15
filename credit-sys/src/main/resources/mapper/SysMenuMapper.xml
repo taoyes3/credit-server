@@ -13,4 +13,10 @@
         from sys_menu
         where parent_id = #{parentId}
     </select>
+    <select id="listSimpleMenuNoButton" resultType="com.taoyes3.credit.sys.model.SysMenu">
+        select id, parent_id, name
+        from sys_menu
+        where type != 2
+        order by order_num
+    </select>
 </mapper>

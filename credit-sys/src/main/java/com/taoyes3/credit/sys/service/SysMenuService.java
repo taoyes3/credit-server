@@ -26,4 +26,10 @@ public interface SysMenuService extends IService<SysMenu> {
      * @param id
      */
     void deleteMenuAndRoleMenu(Long id);
+
+    /**
+     * 获取简单的menu tree 用于在ele-ui tree中显示，根据orderNum排序
+     * @return
+     */
+    List<SysMenu> listSimpleMenuNoButton();
 }

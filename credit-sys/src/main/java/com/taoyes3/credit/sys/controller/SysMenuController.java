@@ -60,4 +60,15 @@ public class SysMenuController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * 所有菜单列表(用于新建、修改角色时 获取菜单的信息)
+     * @return
+     */
+    @GetMapping("/list")
+    public ResponseEntity<List<SysMenu>> list() {
+        List<SysMenu> sysMenuList = sysMenuService.listSimpleMenuNoButton();
+        return ResponseEntity.ok(sysMenuList);
+    }
+
+
 }

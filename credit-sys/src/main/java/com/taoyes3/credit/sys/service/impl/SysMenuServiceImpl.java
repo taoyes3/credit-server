@@ -69,4 +69,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         this.removeById(id);
         // TODO: 2022/9/15 删除菜单与角色关联
     }
+
+    @Override
+    public List<SysMenu> listSimpleMenuNoButton() {
+        return sysMenuMapper.listSimpleMenuNoButton();
+    }
 }
