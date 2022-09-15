@@ -7,6 +7,9 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+
 /**
  * 菜单管理
  * @TableName sys_menu
@@ -23,11 +26,13 @@ public class SysMenu implements Serializable {
     /**
      * 父菜单ID，一级菜单为0
      */
+    @NotNull(message = "上级菜单不能为空")
     private Long parentId;
 
     /**
      * 菜单名称
      */
+    @NotBlank(message = "菜单名称不能为空")
     private String name;
 
     /**

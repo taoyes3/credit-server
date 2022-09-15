@@ -4,6 +4,13 @@
 <mapper namespace="com.taoyes3.credit.sys.dao.SysMenuMapper">
 
     <select id="listMenuAndBtn" resultType="com.taoyes3.credit.sys.model.SysMenu">
-        select * from sys_menu order by order_num
+        select *
+        from sys_menu
+        order by order_num
+    </select>
+    <select id="listChildrenMenuByParentId" resultType="com.taoyes3.credit.sys.model.SysMenu">
+        select id, name
+        from sys_menu
+        where parent_id = #{parentId}
     </select>
 </mapper>

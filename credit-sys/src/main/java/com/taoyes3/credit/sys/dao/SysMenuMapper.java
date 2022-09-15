@@ -11,4 +11,6 @@ import java.util.List;
  */
 public interface SysMenuMapper extends BaseMapper<SysMenu> {
     List<SysMenu> listMenuAndBtn();
+
+    List<SysMenu> listChildrenMenuByParentId(Long parentId);
 }

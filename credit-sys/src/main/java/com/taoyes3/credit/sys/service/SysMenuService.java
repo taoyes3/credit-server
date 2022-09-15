@@ -11,4 +11,19 @@ import java.util.List;
  */
 public interface SysMenuService extends IService<SysMenu> {
     List<SysMenu> listMenuAndBtn();
+
+    void verifyForm(SysMenu sysMenu);
+
+    /**
+     * 获取子菜单
+     * @param parentId
+     * @return
+     */
+    List<SysMenu> listChildrenMenuByParentId(Long parentId);
+
+    /**
+     * 删除 菜单，与角色菜单之间的关系
+     * @param id
+     */
+    void deleteMenuAndRoleMenu(Long id);
 }
