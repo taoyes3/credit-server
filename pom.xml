@@ -23,6 +23,7 @@
         <taoyes3.credit.version>0.0.1-SNAPSHOT</taoyes3.credit.version>
         <druid.version>1.2.9</druid.version>
         <mybatis-plus.version>3.4.2</mybatis-plus.version>
+        <hutool.version>5.7.15</hutool.version>
     </properties>
 
     <!--依赖管理-->
@@ -39,6 +40,12 @@
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-boot-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
+            </dependency>
+            <!--Java工具类库-->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
