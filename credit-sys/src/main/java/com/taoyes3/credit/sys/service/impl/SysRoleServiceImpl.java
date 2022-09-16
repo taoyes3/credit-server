@@ -6,6 +6,7 @@ import com.taoyes3.credit.sys.dao.SysRoleMenuMapper;
 import com.taoyes3.credit.sys.model.SysRole;
 import com.taoyes3.credit.sys.service.SysRoleService;
 import com.taoyes3.credit.sys.dao.SysRoleMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -17,14 +18,17 @@ import java.util.Date;
  * @createDate 2022-09-16 16:16:23
  */
 @Service
+@Slf4j
 public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> implements SysRoleService {
     @Resource
     private SysRoleMenuMapper sysRoleMenuMapper;
 
     @Override
     public void saveRoleAndRoleMenu(SysRole sysRole) {
+        log.info("sysRole对象：{}", sysRole);
         sysRole.setCreateTime(new Date());
         this.save(sysRole);
+        //角色是否配置菜单权限
         if (CollectionUtil.isEmpty(sysRole.getMenuIdList())) {
             return;
         }

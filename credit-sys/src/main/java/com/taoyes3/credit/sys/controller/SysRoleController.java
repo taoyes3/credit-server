@@ -8,12 +8,10 @@ import com.taoyes3.credit.sys.model.SysRole;
 import com.taoyes3.credit.sys.service.SysRoleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.validation.Valid;
 
 /**
  * @author taoyes3
@@ -36,8 +34,8 @@ public class SysRoleController {
     }
 
     @PostMapping
-    public void store(SysRole sysRole) {
+    public ResponseEntity<Object> store(@Valid @RequestBody SysRole sysRole) {
         sysRoleService.saveRoleAndRoleMenu(sysRole);
-        return;
+        return ResponseEntity.ok().build();
     }
 }
