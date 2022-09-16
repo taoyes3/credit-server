@@ -40,7 +40,8 @@ public class SysRoleController {
     }
 
     @PutMapping
-    public void update(@Valid @RequestBody SysRole sysRole) {
+    public ResponseEntity<Object> update(@Valid @RequestBody SysRole sysRole) {
         sysRoleService.updateRoleAndRoleMenu(sysRole);
+        return ResponseEntity.ok().build();
     }
 }
