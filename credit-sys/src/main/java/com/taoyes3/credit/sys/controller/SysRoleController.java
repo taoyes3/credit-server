@@ -9,6 +9,7 @@ import com.taoyes3.credit.sys.service.SysRoleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,5 +33,11 @@ public class SysRoleController {
         IPage<SysRole> sysRoles = sysRoleService.page(pageParam, wrapper);
 
         return ResponseEntity.ok(sysRoles);
+    }
+
+    @PostMapping
+    public void store(SysRole sysRole) {
+        sysRoleService.saveRoleAndRoleMenu(sysRole);
+        return;
     }
 }
