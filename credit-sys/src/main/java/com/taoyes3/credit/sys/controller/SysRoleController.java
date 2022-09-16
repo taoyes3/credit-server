@@ -38,4 +38,9 @@ public class SysRoleController {
         sysRoleService.saveRoleAndRoleMenu(sysRole);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping
+    public void update(@Valid @RequestBody SysRole sysRole) {
+        sysRoleService.updateRoleAndRoleMenu(sysRole);
+    }
 }
