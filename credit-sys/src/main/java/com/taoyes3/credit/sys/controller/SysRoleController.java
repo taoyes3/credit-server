@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * @author taoyes3
@@ -44,4 +45,11 @@ public class SysRoleController {
         sysRoleService.updateRoleAndRoleMenu(sysRole);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping
+    public ResponseEntity<Object> delete(@RequestBody List<Long> ids) {
+        sysRoleService.deleteBatch(ids);
+        return ResponseEntity.ok().build();
+    }
+    
 }

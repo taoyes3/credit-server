@@ -1,13 +1,17 @@
 package com.taoyes3.credit.sys.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.taoyes3.credit.common.exception.CreditBindException;
 import com.taoyes3.credit.sys.constant.MenuType;
 import com.taoyes3.credit.sys.dao.SysMenuMapper;
+import com.taoyes3.credit.sys.dao.SysRoleMenuMapper;
 import com.taoyes3.credit.sys.model.SysMenu;
+import com.taoyes3.credit.sys.model.SysRoleMenu;
 import com.taoyes3.credit.sys.service.SysMenuService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -21,6 +25,8 @@ import java.util.Objects;
 public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> implements SysMenuService {
     @Resource
     private SysMenuMapper sysMenuMapper;
+    @Resource
+    private SysRoleMenuMapper sysRoleMenuMapper;
 
     @Override
     public List<SysMenu> listMenuAndBtn() {
@@ -64,10 +70,13 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     }
 
     @Override
+    @Transactional
     public void deleteMenuAndRoleMenu(Long id) {
         //删除菜单
         this.removeById(id);
-        // TODO: 2022/9/15 删除菜单与角色关联
+        //删除菜单与角色关联
+        LambdaQueryWrapper<SysRoleMenu> wrapper = new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getMenuId, id);
+        sysRoleMenuMapper.delete(wrapper);
     }
 
     @Override

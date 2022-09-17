@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author taoyes3
@@ -44,15 +45,25 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Transactional
     public void updateRoleAndRoleMenu(SysRole sysRole) {
         this.updateById(sysRole);
-        //先删除原分配的菜单权限
+        //先删除原分配的菜单
         LambdaQueryWrapper<SysRoleMenu> wrapper = new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, sysRole.getId());
         sysRoleMenuMapper.delete(wrapper);
-        //角色是否配置菜单权限
+        //角色是否配置菜单
         if (CollectionUtil.isEmpty(sysRole.getMenuIdList())) {
             return;
         }
         //保存角色与菜单关系
         sysRoleMenuMapper.insertRoleAndRoleMenu(sysRole.getId(), sysRole.getMenuIdList());
+    }
+
+    @Override
+    public void deleteBatch(List<Long> ids) {
+        //删除角色
+        this.removeByIds(ids);
+        //删除角色与菜单关联
+        LambdaQueryWrapper<SysRoleMenu> sysRoleMenuLambdaQueryWrapper = new LambdaQueryWrapper<SysRoleMenu>().in(SysRoleMenu::getRoleId, ids);
+        sysRoleMenuMapper.delete(sysRoleMenuLambdaQueryWrapper);
+        // TODO: 2022/9/17 删除角色与用户关联 
     }
 }
 

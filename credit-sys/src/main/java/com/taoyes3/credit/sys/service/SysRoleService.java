@@ -3,6 +3,8 @@ package com.taoyes3.credit.sys.service;
 import com.taoyes3.credit.sys.model.SysRole;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
  * @author taoyes3
  * @description 针对表【sys_role(角色)】的数据库操作Service
@@ -13,4 +15,6 @@ public interface SysRoleService extends IService<SysRole> {
     void saveRoleAndRoleMenu(SysRole sysRole);
 
     void updateRoleAndRoleMenu(SysRole sysRole);
+
+    void deleteBatch(List<Long> ids);
 }
