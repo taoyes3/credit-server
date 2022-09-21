@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -39,6 +40,8 @@ public class SysUser implements Serializable {
     /**
      * 密码
      */
+    // 仅做反序列化操作
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     /**

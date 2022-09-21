@@ -6,6 +6,8 @@ import com.taoyes3.credit.common.exception.CreditBindException;
 import com.taoyes3.credit.common.util.PageParam;
 import com.taoyes3.credit.sys.constant.Constant;
 import com.taoyes3.credit.sys.model.SysUser;
+import com.taoyes3.credit.sys.model.SysUserRole;
+import com.taoyes3.credit.sys.service.SysUserRoleService;
 import com.taoyes3.credit.sys.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import javax.annotation.Resource;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author taoyes3
@@ -26,6 +29,8 @@ import java.util.Objects;
 public class SysUserController {
     @Resource
     private SysUserService sysUserService;
+    @Resource
+    private SysUserRoleService sysUserRoleService;
     
     @GetMapping
     public ResponseEntity<PageParam<SysUser>> index(String username, PageParam<SysUser> pageParam) {
@@ -77,5 +82,15 @@ public class SysUserController {
         // TODO: 2022/9/21 当前用户不能删除 
         sysUserService.deleteBatch(ids);
         return ResponseEntity.ok().build();
+    }
+    
+    @GetMapping("/info/{id}")
+    public ResponseEntity<SysUser> info(@PathVariable Long id) {
+        SysUser sysUser = sysUserService.getById(id);
+        // 查询用户对应的角色
+        List<SysUserRole> sysUserRoles = sysUserRoleService.list(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, id));
+        List<Long> roleIdList = sysUserRoles.stream().map(SysUserRole::getRoleId).collect(Collectors.toList());
+        sysUser.setRoleIdList(roleIdList);
+        return ResponseEntity.ok(sysUser);
     }
 }

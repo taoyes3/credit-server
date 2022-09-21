@@ -60,14 +60,10 @@ public class SysRoleController {
     @GetMapping("/info/{id}")
     public ResponseEntity<SysRole> info(@PathVariable Long id) {
         SysRole sysRole = sysRoleService.getById(id);
-        //查询角色对应的菜单
-        LambdaQueryWrapper<SysRoleMenu> wrapper = new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id);
-        List<SysRoleMenu> sysRoleMenus = sysRoleMenuService.list(wrapper);
+        // 查询角色对应的菜单
+        List<SysRoleMenu> sysRoleMenus = sysRoleMenuService.list(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, id));
         List<Long> menuIdList = sysRoleMenus.stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
-        //log.info("sysRoleMenus的值：{}", sysRoleMenus);
-        //log.info("menuIdList的值：{}", menuIdList);
         sysRole.setMenuIdList(menuIdList);
-        
         return ResponseEntity.ok(sysRole);
     }
 }
