@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.taoyes3.credit.common.exception.CreditBindException;
 import com.taoyes3.credit.common.util.PageParam;
+import com.taoyes3.credit.sys.constant.Constant;
 import com.taoyes3.credit.sys.model.SysUser;
 import com.taoyes3.credit.sys.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -62,6 +64,16 @@ public class SysUserController {
             throw new CreditBindException("admin用户不可以被禁用");
         }
         sysUserService.updateUserAndUserRole(sysUser);
+        return ResponseEntity.ok().build();
+    }
+    
+    @DeleteMapping
+    public ResponseEntity<Object> delete(@RequestBody List<Long> ids) {
+        if (ids.contains(Constant.SUPER_ADMIN_ID)) {
+            throw new CreditBindException("系统管理员不能删除");
+        }
+        // TODO: 2022/9/21 当前用户不能删除 
+        // sysUserService.deleteBatch(ids);
         return ResponseEntity.ok().build();
     }
 }

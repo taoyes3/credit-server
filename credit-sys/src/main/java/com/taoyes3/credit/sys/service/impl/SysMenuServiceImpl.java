@@ -75,8 +75,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         //删除菜单
         this.removeById(id);
         //删除菜单与角色关联
-        LambdaQueryWrapper<SysRoleMenu> wrapper = new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getMenuId, id);
-        sysRoleMenuMapper.delete(wrapper);
+        sysRoleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getMenuId, id));
     }
 
     @Override

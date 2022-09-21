@@ -10,9 +10,11 @@ import com.taoyes3.credit.sys.model.SysUserRole;
 import com.taoyes3.credit.sys.service.SysUserService;
 import com.taoyes3.credit.sys.dao.SysUserMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.Date;
+import java.util.List;
 
 /**
 * @author taoyes3
@@ -25,6 +27,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private SysUserRoleMapper sysUserRoleMapper;
     
     @Override
+    @Transactional
     public void saveUserAndUserRole(SysUser sysUser) {
         sysUser.setCreateTime(new Date());
         this.save(sysUser);
@@ -36,18 +39,27 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
+    @Transactional
     public void updateUserAndUserRole(SysUser sysUser) {
         // 更新用户
         this.updateById(sysUser);
         // 先删除用户与角色关系
-        sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
-                .eq(SysUserRole::getUserId, sysUser.getId()));
+        sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, sysUser.getId()));
         
         if (CollUtil.isEmpty(sysUser.getRoleIdList())) {
             return;
         }
         // 保存用户与角色关系
         sysUserRoleMapper.insertUserAndUserRole(sysUser.getId(), sysUser.getRoleIdList());
+    }
+
+    @Override
+    @Transactional
+    public void deleteBatch(List<Long> ids) {
+        // 删除用户
+        this.removeByIds(ids);
+        // 删除用户和角色关联
+        sysUserRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().in(SysUserRole::getUserId, ids));
     }
 }
 
