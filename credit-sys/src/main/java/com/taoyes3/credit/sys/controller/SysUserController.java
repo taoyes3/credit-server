@@ -69,11 +69,13 @@ public class SysUserController {
     
     @DeleteMapping
     public ResponseEntity<Object> delete(@RequestBody List<Long> ids) {
-        if (ids.contains(Constant.SUPER_ADMIN_ID)) {
+        // Constant.SUPER_ADMIN_ID 类型需要为Long,
+        // contains会比较Constant.SUPER_ADMIN_ID和ids内部（即子元素）的数据类型
+        if (ids.contains(Constant.SUPER_ADMIN_ID)) {      
             throw new CreditBindException("系统管理员不能删除");
         }
         // TODO: 2022/9/21 当前用户不能删除 
-        // sysUserService.deleteBatch(ids);
+        sysUserService.deleteBatch(ids);
         return ResponseEntity.ok().build();
     }
 }
