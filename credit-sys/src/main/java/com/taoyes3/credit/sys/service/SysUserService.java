@@ -11,4 +11,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface SysUserService extends IService<SysUser> {
 
     void saveUserAndUserRole(SysUser sysUser);
+
+    void updateUserAndUserRole(SysUser sysUser);
 }

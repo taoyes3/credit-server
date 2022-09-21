@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.Objects;
 
 /**
  * @author taoyes3
@@ -42,6 +43,25 @@ public class SysUserController {
         }
         // TODO: 2022/9/19 密码加密 
         sysUserService.saveUserAndUserRole(sysUser);
+        return ResponseEntity.ok().build();
+    }
+    
+    @PutMapping
+    public ResponseEntity<Object> update(@Valid @RequestBody SysUser sysUser) {
+        log.info("sysUser对象：{}", sysUser);
+        SysUser userInfo = sysUserService.getOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUsername, sysUser.getUsername()));
+        if (userInfo != null && !Objects.equals(userInfo.getId(), sysUser.getId())) {
+            throw new CreditBindException("该用户已存在");
+        }
+        // TODO: 2022/9/21 密码加密
+        String password = StrUtil.isBlank(sysUser.getPassword()) ? null : sysUser.getPassword();
+        sysUser.setPassword(password);
+        
+        if (Objects.equals(1L, sysUser.getId()) && sysUser.getStatus() == 0) {
+            throw new CreditBindException("admin用户不可以被禁用");
+        }
+        sysUserService.updateUserAndUserRole(sysUser);
         return ResponseEntity.ok().build();
     }
 }
