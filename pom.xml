@@ -7,6 +7,8 @@
         <module>credit-common</module>
         <module>credit-admin</module>
         <module>credit-sys</module>
+        <module>credit-security</module>
+        <module>credit-service</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -24,6 +26,7 @@
         <druid.version>1.2.9</druid.version>
         <mybatis-plus.version>3.4.2</mybatis-plus.version>
         <hutool.version>5.7.15</hutool.version>
+        <captcha.version>1.3.0</captcha.version>
     </properties>
 
     <!--依赖管理-->
@@ -46,6 +49,12 @@
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
                 <version>${hutool.version}</version>
+            </dependency>
+            <!--验证码-->
+            <dependency>
+                <groupId>com.anji-plus</groupId>
+                <artifactId>spring-boot-starter-captcha</artifactId>
+                <version>${captcha.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

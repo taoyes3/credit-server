@@ -9,17 +9,12 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>credit-admin</artifactId>
+    <artifactId>credit-service</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>com.taoyes3</groupId>
-            <artifactId>credit-sys</artifactId>
-            <version>${taoyes3.credit.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.taoyes3</groupId>
-            <artifactId>credit-security-admin</artifactId>
+            <artifactId>credit-common</artifactId>
             <version>${taoyes3.credit.version}</version>
         </dependency>
     </dependencies>
