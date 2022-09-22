@@ -3,8 +3,10 @@ package com.taoyes3.credit.admin.controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.taoyes3.credit.common.exception.CreditBindException;
 import com.taoyes3.credit.security.admin.dto.CaptchaAuthenticationDTO;
+import com.taoyes3.credit.sys.model.SysUser;
 import com.taoyes3.credit.sys.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,5 +39,10 @@ public class LoginController {
         if (!responseModel.isSuccess()) {
             throw new CreditBindException("验证码有误或已过期");
         }
+        SysUser sysUser = sysUserService.getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, captchaAuthenticationDTO.getUsername()));
+        if (sysUser == null) {
+            throw new CreditBindException("账号或密码不正确");
+        }
+        //半小时内密码输入错误十次，已限制登录30分钟
     }
 }
