@@ -17,11 +17,6 @@
             <artifactId>credit-sys</artifactId>
             <version>${taoyes3.credit.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.taoyes3</groupId>
-            <artifactId>credit-security-admin</artifactId>
-            <version>${taoyes3.credit.version}</version>
-        </dependency>
     </dependencies>
 
 </project>
