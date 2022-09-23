@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.taoyes3.credit.common.exception.CreditBindException;
 import com.taoyes3.credit.common.util.RedisUtil;
 import com.taoyes3.credit.security.admin.dto.CaptchaAuthenticationDTO;
+import com.taoyes3.credit.security.common.bo.UserInfoInTokenBO;
 import com.taoyes3.credit.security.common.enums.SysTypeEnum;
 import com.taoyes3.credit.security.common.manager.PasswordCheckManager;
 import com.taoyes3.credit.security.common.manager.PasswordManager;
@@ -55,7 +56,14 @@ public class LoginController {
         // String decryptPassword = passwordManager.decryptPassword(captchaAuthenticationDTO.getPassword());
         String decryptPassword = captchaAuthenticationDTO.getPassword();
         passwordCheckManager.checkPassword(SysTypeEnum.ADMIN, captchaAuthenticationDTO.getUsername(), decryptPassword, sysUser.getPassword());
+
+        UserInfoInTokenBO userInfoInTokenBO = new UserInfoInTokenBO();
+        userInfoInTokenBO.setUserId(String.valueOf(sysUser.getId()));
+        userInfoInTokenBO.setNickName(sysUser.getUsername());
+        userInfoInTokenBO.setIsAdmin(SysTypeEnum.ADMIN.getValue());
+        userInfoInTokenBO.setEnabled(sysUser.getStatus() == 1);
         
+
         log.info("test login...");
     }
     
