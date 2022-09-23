@@ -18,4 +18,10 @@ public class CreditBindException extends RuntimeException {
         super(msg);
         this.httpStatusCode = HttpStatus.BAD_REQUEST.value();
     }
+    
+    public CreditBindException(String msg, Object object) {
+        super(msg);
+        this.httpStatusCode = HttpStatus.BAD_REQUEST.value();
+        this.object = object;
+    }
 }

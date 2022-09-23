@@ -7,6 +7,13 @@ spring:
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
+  cache:
+    type: redis
+    redis:
+      cache-null-values: true
+  redis:
+    redisson:
+      file: classpath:redisson/redisson.yml
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
