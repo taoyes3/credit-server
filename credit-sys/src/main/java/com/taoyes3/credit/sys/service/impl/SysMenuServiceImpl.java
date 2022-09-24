@@ -82,4 +82,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     public List<SysMenu> listSimpleMenuNoButton() {
         return sysMenuMapper.listSimpleMenuNoButton();
     }
+
+    @Override
+    public List<String> queryAllPerms(Long userId) {
+        return sysMenuMapper.queryAllPerms(userId);
+    }
 }

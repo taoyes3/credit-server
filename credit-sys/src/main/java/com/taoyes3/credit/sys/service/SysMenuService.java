@@ -32,4 +32,6 @@ public interface SysMenuService extends IService<SysMenu> {
      * @return
      */
     List<SysMenu> listSimpleMenuNoButton();
+
+    List<String> queryAllPerms(Long userId);
 }

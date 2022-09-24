@@ -1,7 +1,6 @@
 package com.taoyes3.credit.admin.controller;
 
-import com.anji.captcha.model.common.ResponseModel;
-import com.anji.captcha.model.vo.CaptchaVO;
+import cn.hutool.core.util.StrUtil;
 import com.anji.captcha.service.CaptchaService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.taoyes3.credit.common.exception.CreditBindException;
@@ -11,14 +10,20 @@ import com.taoyes3.credit.security.common.bo.UserInfoInTokenBO;
 import com.taoyes3.credit.security.common.enums.SysTypeEnum;
 import com.taoyes3.credit.security.common.manager.PasswordCheckManager;
 import com.taoyes3.credit.security.common.manager.PasswordManager;
+import com.taoyes3.credit.sys.constant.Constant;
+import com.taoyes3.credit.sys.model.SysMenu;
 import com.taoyes3.credit.sys.model.SysUser;
+import com.taoyes3.credit.sys.service.SysMenuService;
 import com.taoyes3.credit.sys.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author taoyes3
@@ -38,6 +43,8 @@ public class LoginController {
     private PasswordCheckManager passwordCheckManager;
     @Resource
     private RedisUtil redisUtil;
+    @Resource
+    private SysMenuService sysMenuService;
     
     @PostMapping
     public void store(@Valid @RequestBody CaptchaAuthenticationDTO captchaAuthenticationDTO) {
@@ -62,13 +69,26 @@ public class LoginController {
         userInfoInTokenBO.setNickName(sysUser.getUsername());
         userInfoInTokenBO.setIsAdmin(SysTypeEnum.ADMIN.getValue());
         userInfoInTokenBO.setEnabled(sysUser.getStatus() == 1);
-        
-
+        userInfoInTokenBO.setPerms(getUserPermissions(sysUser.getId()));
+        // 存储token返回vo
         log.info("test login...");
     }
     
-    @GetMapping("/test")
-    public void test() {
-        redisUtil.set("1checkPrefix + usernameOrMobile1", 111, 1800);
+    private Set<String> getUserPermissions(Long userId) {
+        List<String> permissionList;
+        // 系统管理员，拥有最高权限
+        if (userId.equals(Constant.SUPER_ADMIN_ID)) {
+            List<SysMenu> sysMenuList = sysMenuService.list();
+            permissionList = sysMenuList.stream().map(SysMenu::getPerms).collect(Collectors.toList());
+        } else {
+            permissionList = sysMenuService.queryAllPerms(userId);
+        }
+        
+        return permissionList.stream().flatMap((permission)->{
+            if (StrUtil.isBlank(permission)) {
+                return null;
+            }
+            return Arrays.stream(permission.trim().split(StrUtil.COMMA));
+        }).collect(Collectors.toSet());
     }
 }

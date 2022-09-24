@@ -15,4 +15,6 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
     List<SysMenu> listChildrenMenuByParentId(Long parentId);
 
     List<SysMenu> listSimpleMenuNoButton();
+
+    List<String> queryAllPerms(Long userId);
 }
