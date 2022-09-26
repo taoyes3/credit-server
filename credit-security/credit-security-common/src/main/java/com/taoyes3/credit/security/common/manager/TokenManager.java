@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Component;
@@ -62,8 +63,8 @@ public class TokenManager {
     
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
-    // @Resource
-    // private RedisSerializer<Object> redisSerializer;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
     
     public TokenInfoBO storeAccessToken(UserInfoInTokenBO userInfoInTokenBO) {
         String accessToken = IdUtil.simpleUUID();
@@ -79,39 +80,44 @@ public class TokenManager {
         String accessKeyStr = getAccessKey(accessToken);
         String refreshToAccessKeyStr = getRefreshToAccessKey(refreshToken);
 
-        // 一个用户会登陆很多次，每次登录的token都会存在 UID_TO_ACCESS 里面
+        // 一个用户会登录很多次，每次登录的token都会存在 UID_TO_ACCESS 里面
         // 但是每次保存都会更新这个key的时间，而key里面的token有可能会过期，过期就要移除掉
         ArrayList<byte[]> existsAccessTokenBytes = new ArrayList<>();
         // 新的token数据
         existsAccessTokenBytes.add((accessToken + StrUtil.COLON + refreshToken).getBytes(StandardCharsets.UTF_8));
 
-        Long size = redisTemplate.opsForSet().size(uidToAccessKeyStr);
+        // redisTemplate 或 stringRedisTemplate 都可以使用
+        Long size = stringRedisTemplate.opsForSet().size(uidToAccessKeyStr);
         if (size != null && size != 0) {
-            List<Object> tokenInfoBoList = redisTemplate.opsForSet().pop(uidToAccessKeyStr, size);
+            List<String> tokenInfoBoList = stringRedisTemplate.opsForSet().pop(uidToAccessKeyStr, size);
             if (tokenInfoBoList != null) {
-                for (Object accessTokenWithRefreshToken : tokenInfoBoList) {
-                    String[] accessTokenWithRefreshTokenArr = ((String) accessTokenWithRefreshToken).split(StrUtil.COLON);
+                for (String accessTokenWithRefreshToken : tokenInfoBoList) {
+                    // 字符串转为数组
+                    String[] accessTokenWithRefreshTokenArr = accessTokenWithRefreshToken.split(StrUtil.COLON);
                     String accessTokenData = accessTokenWithRefreshTokenArr[0];
-                    if (BooleanUtil.isTrue(redisTemplate.hasKey(getAccessKey(accessTokenData)))) {
-                        existsAccessTokenBytes.add(((String) accessTokenWithRefreshToken).getBytes(StandardCharsets.UTF_8));
+                    // 如果redis中没有对应的accessToken的key，则过滤掉
+                    if (BooleanUtil.isTrue(stringRedisTemplate.hasKey(getAccessKey(accessTokenData)))) {
+                        existsAccessTokenBytes.add(accessTokenWithRefreshToken.getBytes(StandardCharsets.UTF_8));
                     }
                 }
             }
         }
-        
+        // pipeline批量处理
         redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
             long expiresIn = tokenInfoBO.getExpiresIn();
             byte[] uidKey = uidToAccessKeyStr.getBytes(StandardCharsets.UTF_8);
             byte[] refreshKey = refreshToAccessKeyStr.getBytes(StandardCharsets.UTF_8);
             byte[] accessKey = accessKeyStr.getBytes(StandardCharsets.UTF_8);
-            
+            // 没有序列化存储，所以使用redisTemplate读取数据时会报错（读取时会进行序列化转换）
+            // 因为字符串自己几乎就已经是byte array了，不需要自己处理，所以可以使用stringRedisTemplate读取数据
             redisConnection.sAdd(uidKey, ArrayUtil.toArray(existsAccessTokenBytes, byte[].class));
             // 通过uid + sysType 保存access_token，当需要禁用用户的时候，可以根据uid + sysType 禁用用户
             redisConnection.expire(uidKey, expiresIn);
             // 通过refresh_token获取用户的access_token从而刷新token
             redisConnection.setEx(refreshKey, expiresIn, accessToken.getBytes(StandardCharsets.UTF_8));
-            // 通过access_token保存用户id，uid
+            // 序列化 userInfoInTokenBO 对象
             RedisSerializer<Object> redisSerializer = new GenericJackson2JsonRedisSerializer();
+            // 通过access_token保存用户id，uid
             redisConnection.setEx(accessKey, expiresIn, Objects.requireNonNull(redisSerializer.serialize(userInfoInTokenBO)));
             return null;
         });

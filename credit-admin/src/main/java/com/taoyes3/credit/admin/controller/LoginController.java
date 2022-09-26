@@ -19,6 +19,7 @@ import com.taoyes3.credit.sys.service.SysMenuService;
 import com.taoyes3.credit.sys.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,14 +54,30 @@ public class LoginController {
     private TokenManager tokenManager;
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+    
+    @GetMapping("/test")
+    public void test() {
+        List<String> pop = stringRedisTemplate.opsForSet().pop("credit_oauth:token:uid_to_access:1:1", 1);
+        // List<Object> pop = redisTemplate.opsForSet().pop("credit_oauth:token:uid_to_access:1:1", 1);
+        log.info("pop:{}", pop);
+    }
+
+    @GetMapping("/test2")
+    public void test2() {
+        // List<String> pop = stringRedisTemplate.opsForSet().pop("credit_oauth:token:uid_to_access:1:1", 1);
+        List<Object> pop = redisTemplate.opsForSet().pop("credit_oauth:token:uid_to_access:1:1", 1);
+        log.info("pop:{}", pop);
+    }
     
     @PostMapping
     public ResponseEntity<TokenInfoVO> store(@Valid @RequestBody CaptchaAuthenticationDTO captchaAuthenticationDTO) {
-        if (true) {
-            List<Object> pop = redisTemplate.opsForSet().pop("credit_oauth:token:uid_to_access:1:1", 1);
-            log.info("pop:{}", pop);
-            log.info("111");
-        }
+        // if (true) {
+        //     List<Object> pop = redisTemplate.opsForSet().pop("credit_oauth:token:uid_to_access:1:1", 1);
+        //     log.info("pop:{}", pop);
+        //     log.info("111");
+        // }
         // 登陆后台登录需要再校验一遍验证码
         // CaptchaVO captchaVO = new CaptchaVO();
         // captchaVO.setCaptchaVerification(captchaAuthenticationDTO.getCaptchaVerification());
