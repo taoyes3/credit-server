@@ -1,13 +1,18 @@
 package com.taoyes3.credit.security.common.manager;
 
+import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.symmetric.AES;
 import com.taoyes3.credit.security.common.bo.TokenInfoBO;
 import com.taoyes3.credit.security.common.bo.UserInfoInTokenBO;
 import com.taoyes3.credit.security.common.enums.SysTypeEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -49,11 +54,14 @@ public class TokenManager {
      * 根据uid获取保存的token key缓存使用的key
      */
     String UID_TO_ACCESS = OAUTH_TOKEN_PREFIX + "uid_to_access:";
+
+    @Value("${auth.token.signKey:-credit-token}")
+    private String tokenSignKey;
     
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
     @Resource
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisSerializer<Object> redisSerializer;
     
     public void storeAccessToken(UserInfoInTokenBO userInfoInTokenBO) {
         String accessToken = IdUtil.simpleUUID();
@@ -71,19 +79,48 @@ public class TokenManager {
 
         // 一个用户会登陆很多次，每次登录的token都会存在 UID_TO_ACCESS 里面
         // 但是每次保存都会更新这个key的时间，而key里面的token有可能会过期，过期就要移除掉
-        ArrayList<Object> existsAccessTokenBytes = new ArrayList<>();
+        ArrayList<byte[]> existsAccessTokenBytes = new ArrayList<>();
         // 新的token数据
         existsAccessTokenBytes.add((accessToken + StrUtil.COLON + refreshToken).getBytes(StandardCharsets.UTF_8));
 
         Long size = redisTemplate.opsForSet().size(uidToAccessKeyStr);
         if (size != null && size != 0) {
-            List<String> tokenInfoBoList = stringRedisTemplate.opsForSet().pop(uidToAccessKeyStr, size);
+            List<Object> tokenInfoBoList = redisTemplate.opsForSet().pop(uidToAccessKeyStr, size);
             if (tokenInfoBoList != null) {
-                // for (String tokenInfoBO : tokenInfoBoList) {
-                //    
-                // }
+                for (Object accessTokenWithRefreshToken : tokenInfoBoList) {
+                    String[] accessTokenWithRefreshTokenArr = ((String) accessTokenWithRefreshToken).split(StrUtil.COLON);
+                    String accessTokenData = accessTokenWithRefreshTokenArr[0];
+                    if (BooleanUtil.isTrue(redisTemplate.hasKey(getAccessKey(accessTokenData)))) {
+                        existsAccessTokenBytes.add(((String) accessTokenWithRefreshToken).getBytes(StandardCharsets.UTF_8));
+                    }
+                }
             }
         }
+        
+        // 
+        redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
+            long expiresIn = tokenInfoBO.getExpiresIn();
+            byte[] uidKey = uidToAccessKeyStr.getBytes(StandardCharsets.UTF_8);
+            byte[] refreshKey = refreshToAccessKeyStr.getBytes(StandardCharsets.UTF_8);
+            byte[] accessKey = accessKeyStr.getBytes(StandardCharsets.UTF_8);
+            
+            redisConnection.sAdd(uidKey, ArrayUtil.toArray(existsAccessTokenBytes, byte[].class));
+            // 通过uid + sysType 保存access_token，当需要禁用用户的时候，可以根据uid + sysType 禁用用户
+            redisConnection.expire(uidKey, expiresIn);
+            // 通过refresh_token获取用户的access_token从而刷新token
+            redisConnection.setEx(refreshKey, expiresIn, accessToken.getBytes(StandardCharsets.UTF_8));
+            // 通过access_token保存用户id，uid
+            redisConnection.setEx(accessKey, expiresIn, Objects.requireNonNull(redisSerializer.serialize(userInfoInTokenBO)));
+            return null;
+        });
+        // 返回给前端是加密的token
+        tokenInfoBO.setAccessToken(encryptToken(accessToken, userInfoInTokenBO.getSysType()));
+        tokenInfoBO.setRefreshToken(encryptToken(refreshToken, userInfoInTokenBO.getSysType()));
+    }
+
+    private String encryptToken(String accessToken, Integer sysType) {
+        AES aes = new AES(tokenSignKey.getBytes(StandardCharsets.UTF_8));
+        return aes.encryptBase64(accessToken + System.currentTimeMillis() + sysType);
     }
 
     private String getRefreshToAccessKey(String refreshToken) {
