@@ -10,12 +10,16 @@ import com.taoyes3.credit.security.common.bo.UserInfoInTokenBO;
 import com.taoyes3.credit.security.common.enums.SysTypeEnum;
 import com.taoyes3.credit.security.common.manager.PasswordCheckManager;
 import com.taoyes3.credit.security.common.manager.PasswordManager;
+import com.taoyes3.credit.security.common.manager.TokenManager;
+import com.taoyes3.credit.security.common.vo.TokenInfoVO;
 import com.taoyes3.credit.sys.constant.Constant;
 import com.taoyes3.credit.sys.model.SysMenu;
 import com.taoyes3.credit.sys.model.SysUser;
 import com.taoyes3.credit.sys.service.SysMenuService;
 import com.taoyes3.credit.sys.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -45,9 +49,18 @@ public class LoginController {
     private RedisUtil redisUtil;
     @Resource
     private SysMenuService sysMenuService;
+    @Resource
+    private TokenManager tokenManager;
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
     
     @PostMapping
-    public void store(@Valid @RequestBody CaptchaAuthenticationDTO captchaAuthenticationDTO) {
+    public ResponseEntity<TokenInfoVO> store(@Valid @RequestBody CaptchaAuthenticationDTO captchaAuthenticationDTO) {
+        if (true) {
+            List<Object> pop = redisTemplate.opsForSet().pop("credit_oauth:token:uid_to_access:1:1", 1);
+            log.info("pop:{}", pop);
+            log.info("111");
+        }
         // 登陆后台登录需要再校验一遍验证码
         // CaptchaVO captchaVO = new CaptchaVO();
         // captchaVO.setCaptchaVerification(captchaAuthenticationDTO.getCaptchaVerification());
@@ -67,11 +80,13 @@ public class LoginController {
         UserInfoInTokenBO userInfoInTokenBO = new UserInfoInTokenBO();
         userInfoInTokenBO.setUserId(String.valueOf(sysUser.getId()));
         userInfoInTokenBO.setNickName(sysUser.getUsername());
-        userInfoInTokenBO.setIsAdmin(SysTypeEnum.ADMIN.getValue());
+        userInfoInTokenBO.setSysType(SysTypeEnum.ADMIN.getValue());
         userInfoInTokenBO.setEnabled(sysUser.getStatus() == 1);
         userInfoInTokenBO.setPerms(getUserPermissions(sysUser.getId()));
         // 存储token返回vo
+        TokenInfoVO tokenInfoVO = tokenManager.storeAndGetVo(userInfoInTokenBO);
         log.info("test login...");
+        return ResponseEntity.ok(tokenInfoVO);
     }
     
     private Set<String> getUserPermissions(Long userId) {

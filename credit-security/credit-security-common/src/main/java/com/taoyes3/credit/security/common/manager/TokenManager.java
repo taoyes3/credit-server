@@ -8,10 +8,12 @@ import cn.hutool.crypto.symmetric.AES;
 import com.taoyes3.credit.security.common.bo.TokenInfoBO;
 import com.taoyes3.credit.security.common.bo.UserInfoInTokenBO;
 import com.taoyes3.credit.security.common.enums.SysTypeEnum;
+import com.taoyes3.credit.security.common.vo.TokenInfoVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Component;
 
@@ -55,15 +57,15 @@ public class TokenManager {
      */
     String UID_TO_ACCESS = OAUTH_TOKEN_PREFIX + "uid_to_access:";
 
-    @Value("${auth.token.signKey:-credit-token}")
+    @Value("${auth.token.signKey:-credit--token--}")
     private String tokenSignKey;
     
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
-    @Resource
-    private RedisSerializer<Object> redisSerializer;
+    // @Resource
+    // private RedisSerializer<Object> redisSerializer;
     
-    public void storeAccessToken(UserInfoInTokenBO userInfoInTokenBO) {
+    public TokenInfoBO storeAccessToken(UserInfoInTokenBO userInfoInTokenBO) {
         String accessToken = IdUtil.simpleUUID();
         String refreshToken = IdUtil.simpleUUID();
         // TokenInfoBO 信息
@@ -97,7 +99,6 @@ public class TokenManager {
             }
         }
         
-        // 
         redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
             long expiresIn = tokenInfoBO.getExpiresIn();
             byte[] uidKey = uidToAccessKeyStr.getBytes(StandardCharsets.UTF_8);
@@ -110,12 +111,15 @@ public class TokenManager {
             // 通过refresh_token获取用户的access_token从而刷新token
             redisConnection.setEx(refreshKey, expiresIn, accessToken.getBytes(StandardCharsets.UTF_8));
             // 通过access_token保存用户id，uid
+            RedisSerializer<Object> redisSerializer = new GenericJackson2JsonRedisSerializer();
             redisConnection.setEx(accessKey, expiresIn, Objects.requireNonNull(redisSerializer.serialize(userInfoInTokenBO)));
             return null;
         });
         // 返回给前端是加密的token
         tokenInfoBO.setAccessToken(encryptToken(accessToken, userInfoInTokenBO.getSysType()));
         tokenInfoBO.setRefreshToken(encryptToken(refreshToken, userInfoInTokenBO.getSysType()));
+        
+        return tokenInfoBO;
     }
 
     private String encryptToken(String accessToken, Integer sysType) {
@@ -154,7 +158,17 @@ public class TokenManager {
         if (Objects.equals(sysType, SysTypeEnum.ADMIN.getValue())) {
             expiresIn = expiresIn * 4;
         }
-        
         return expiresIn;
+    }
+
+    public TokenInfoVO storeAndGetVo(UserInfoInTokenBO userInfoInTokenBO) {
+        TokenInfoBO tokenInfoBO = storeAccessToken(userInfoInTokenBO);
+
+        TokenInfoVO tokenInfoVO = new TokenInfoVO();
+        tokenInfoVO.setAccessToken(tokenInfoBO.getAccessToken());
+        tokenInfoVO.setRefreshToken(tokenInfoBO.getRefreshToken());
+        tokenInfoVO.setExpiresIn(tokenInfoBO.getExpiresIn());
+        
+        return tokenInfoVO;
     }
 }
