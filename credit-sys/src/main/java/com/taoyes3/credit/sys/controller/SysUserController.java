@@ -93,4 +93,12 @@ public class SysUserController {
         sysUser.setRoleIdList(roleIdList);
         return ResponseEntity.ok(sysUser);
     }
+
+    /**
+     * 获取登录的用户信息
+     */
+    @GetMapping("/info")
+    public void info() {
+        
+    }
 }
