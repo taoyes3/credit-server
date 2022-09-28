@@ -156,7 +156,12 @@ public class TokenManager {
         }
         return userInfoInTokenBO;
     }
-    
+
+    /**
+     * 对 token 进行解密
+     * @param accessToken accessToken
+     * @return 解密后的 token
+     */
     private String decryptToken(String accessToken) {
         AES aes = new AES(tokenSignKey.getBytes(StandardCharsets.UTF_8));
         String decryptStr = aes.decryptStr(accessToken);
@@ -180,6 +185,12 @@ public class TokenManager {
         return decryptToken;
     }
 
+    /**
+     * 对 token 进行加密
+     * @param accessToken accessToken
+     * @param sysType 系统类型
+     * @return 加密后的 token
+     */
     private String encryptToken(String accessToken, Integer sysType) {
         AES aes = new AES(tokenSignKey.getBytes(StandardCharsets.UTF_8));
         return aes.encryptBase64(accessToken + System.currentTimeMillis() + sysType);

@@ -52,7 +52,6 @@ public class AuthFilter implements Filter {
         }
 
         String accessToken = req.getHeader("Authorization");
-        
         try {
             // accessToken为空，则一律拦截
             if (StrUtil.isBlank(accessToken)) {
@@ -60,7 +59,10 @@ public class AuthFilter implements Filter {
                 return;
             }
             UserInfoInTokenBO userInfoInTokenBO = tokenManager.getUserInfoByAccessToken(accessToken, true);
+            // 保存上下文
             AuthUserContext.set(userInfoInTokenBO);
+            
+            chain.doFilter(req, resp);
         } catch (Exception e) {
             // 手动捕获下非controller异常
             if (e instanceof CreditBindException) {
