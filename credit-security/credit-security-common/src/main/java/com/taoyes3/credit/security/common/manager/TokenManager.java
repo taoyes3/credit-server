@@ -5,6 +5,8 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.symmetric.AES;
+import com.taoyes3.credit.common.exception.CreditBindException;
+import com.taoyes3.credit.common.util.PrincipalUtil;
 import com.taoyes3.credit.security.common.bo.TokenInfoBO;
 import com.taoyes3.credit.security.common.bo.UserInfoInTokenBO;
 import com.taoyes3.credit.security.common.enums.SysTypeEnum;
@@ -16,6 +18,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -58,6 +61,9 @@ public class TokenManager {
      */
     String UID_TO_ACCESS = OAUTH_TOKEN_PREFIX + "uid_to_access:";
 
+    /**
+     * 用于aes签名的key，16位
+     */
     @Value("${auth.token.signKey:-credit--token--}")
     private String tokenSignKey;
     
@@ -65,7 +71,12 @@ public class TokenManager {
     private RedisTemplate<String, Object> redisTemplate;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
-    
+
+    /**
+     * 将用户的部分信息存储在token中，并返回token信息
+     * @param userInfoInTokenBO 用户在token中的信息
+     * @return token信息
+     */
     public TokenInfoBO storeAccessToken(UserInfoInTokenBO userInfoInTokenBO) {
         String accessToken = IdUtil.simpleUUID();
         String refreshToken = IdUtil.simpleUUID();
@@ -126,6 +137,47 @@ public class TokenManager {
         tokenInfoBO.setRefreshToken(encryptToken(refreshToken, userInfoInTokenBO.getSysType()));
         
         return tokenInfoBO;
+    }
+
+    /**
+     * 根据accessToken 获取用户信息
+     * @param accessToken accessToken
+     * @param needDecrypt 是否需要解密
+     * @return 用户信息
+     */
+    public UserInfoInTokenBO getUserInfoByAccessToken(String accessToken, boolean needDecrypt) {
+        if (StrUtil.isBlank(accessToken)) {
+            throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "accessToken is blank");
+        }
+        String realAccessToken = needDecrypt ? decryptToken(accessToken) : accessToken;
+        UserInfoInTokenBO userInfoInTokenBO = (UserInfoInTokenBO) redisTemplate.opsForValue().get(getAccessKey(realAccessToken));
+        if (userInfoInTokenBO == null) {
+            throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "accessToken 已失效");
+        }
+        return userInfoInTokenBO;
+    }
+    
+    private String decryptToken(String accessToken) {
+        AES aes = new AES(tokenSignKey.getBytes(StandardCharsets.UTF_8));
+        String decryptStr = aes.decryptStr(accessToken);
+        // 获取解密后的组成部分
+        String decryptToken = decryptStr.substring(0, 32);
+        // 防止解密后的token是脚本，从而对redis进行攻击，uuid只能是数字和小写字母
+        if (!PrincipalUtil.isSimpleChar(decryptToken)) {
+            throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "token error");
+        }
+        // 创建token的时间，token使用时效性，防止攻击者通过一堆的尝试找到aes的密码，虽然aes是目前几乎最好的加密算法
+        long createTokenTime = Long.parseLong(decryptStr.substring(32,45));
+        // 系统类型
+        int sysType = Integer.parseInt(decryptStr.substring(45));
+        // token的过期时间
+        Integer expiresIn = getExpiresIn(sysType);
+        long seconds = 1000L;
+        if (System.currentTimeMillis() - createTokenTime > expiresIn * seconds) {
+            throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "token error");
+        }
+        
+        return decryptToken;
     }
 
     private String encryptToken(String accessToken, Integer sysType) {

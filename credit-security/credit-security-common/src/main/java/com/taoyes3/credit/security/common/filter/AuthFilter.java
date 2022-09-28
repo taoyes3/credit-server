@@ -1,7 +1,14 @@
 package com.taoyes3.credit.security.common.filter;
 
+import cn.hutool.core.util.StrUtil;
+import com.taoyes3.credit.common.exception.CreditBindException;
+import com.taoyes3.credit.common.handler.HttpHandler;
 import com.taoyes3.credit.security.common.adapter.AuthConfigAdapter;
+import com.taoyes3.credit.security.common.bo.UserInfoInTokenBO;
+import com.taoyes3.credit.security.common.manager.TokenManager;
+import com.taoyes3.credit.security.common.util.AuthUserContext;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
@@ -21,6 +28,10 @@ import java.util.List;
 public class AuthFilter implements Filter {
     @Resource
     private AuthConfigAdapter authConfigAdapter;
+    @Resource
+    private HttpHandler httpHandler;
+    @Resource
+    private TokenManager tokenManager;
     
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -41,5 +52,24 @@ public class AuthFilter implements Filter {
         }
 
         String accessToken = req.getHeader("Authorization");
+        
+        try {
+            // accessToken为空，则一律拦截
+            if (StrUtil.isBlank(accessToken)) {
+                httpHandler.printServerResponseToWeb(HttpStatus.UNAUTHORIZED.getReasonPhrase(), HttpStatus.UNAUTHORIZED.value());
+                return;
+            }
+            UserInfoInTokenBO userInfoInTokenBO = tokenManager.getUserInfoByAccessToken(accessToken, true);
+            AuthUserContext.set(userInfoInTokenBO);
+        } catch (Exception e) {
+            // 手动捕获下非controller异常
+            if (e instanceof CreditBindException) {
+                httpHandler.printServerResponseToWeb(e.getMessage(), ((CreditBindException) e).getHttpStatusCode());
+            } else {
+                throw e;
+            }
+        } finally {
+            AuthUserContext.clean();
+        }
     }
 }

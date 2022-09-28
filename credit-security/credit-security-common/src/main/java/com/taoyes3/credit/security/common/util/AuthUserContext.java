@@ -17,4 +17,10 @@ public class AuthUserContext {
     public static void set(UserInfoInTokenBO userInfoInTokenBO) {
         USER_INFO_IN_TOKEN_BO_THREAD_LOCAL.set(userInfoInTokenBO);
     }
+    
+    public static void clean() {
+        if (USER_INFO_IN_TOKEN_BO_THREAD_LOCAL.get() != null) {
+            USER_INFO_IN_TOKEN_BO_THREAD_LOCAL.remove();
+        }
+    }
 }

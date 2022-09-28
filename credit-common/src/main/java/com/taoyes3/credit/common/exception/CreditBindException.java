@@ -13,6 +13,11 @@ public class CreditBindException extends RuntimeException {
     public Integer getHttpStatusCode() {
         return httpStatusCode;
     }
+    
+    public CreditBindException(Integer httpStatusCode, String msg) {
+        super(msg);
+        this.httpStatusCode = httpStatusCode;
+    }
 
     public CreditBindException(String msg) {
         super(msg);
