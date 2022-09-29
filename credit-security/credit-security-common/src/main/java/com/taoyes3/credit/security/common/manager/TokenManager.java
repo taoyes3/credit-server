@@ -30,7 +30,7 @@ import java.util.Objects;
 
 /**
  * token管理 1.登陆返回token 2.刷新token 3.清除用户过去token 4.校验token
- * 
+ *
  * @author taoyes3
  * @date 2022/9/24 9:44
  */
@@ -67,7 +67,7 @@ public class TokenManager {
      */
     @Value("${auth.token.signKey:-credit--token--}")
     private String tokenSignKey;
-    
+
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
     @Resource
@@ -75,6 +75,7 @@ public class TokenManager {
 
     /**
      * 将用户的部分信息存储在token中，并返回token信息
+     *
      * @param userInfoInTokenBO 用户在token中的信息
      * @return token信息
      */
@@ -87,7 +88,7 @@ public class TokenManager {
         tokenInfoBO.setAccessToken(accessToken);
         tokenInfoBO.setRefreshToken(refreshToken);
         tokenInfoBO.setExpiresIn(getExpiresIn(userInfoInTokenBO.getSysType()));
-        
+
         String uidToAccessKeyStr = getUserIdToAccessKey(getApprovalKey(userInfoInTokenBO));
         String accessKeyStr = getAccessKey(accessToken);
         String refreshToAccessKeyStr = getRefreshToAccessKey(refreshToken);
@@ -136,12 +137,13 @@ public class TokenManager {
         // 返回给前端是加密的token
         tokenInfoBO.setAccessToken(encryptToken(accessToken, userInfoInTokenBO.getSysType()));
         tokenInfoBO.setRefreshToken(encryptToken(refreshToken, userInfoInTokenBO.getSysType()));
-        
+
         return tokenInfoBO;
     }
 
     /**
      * 根据accessToken 获取用户信息
+     *
      * @param accessToken accessToken
      * @param needDecrypt 是否需要解密
      * @return 用户信息
@@ -160,36 +162,43 @@ public class TokenManager {
 
     /**
      * 对 token 进行解密
+     *
      * @param accessToken accessToken
      * @return 解密后的 token
      */
     private String decryptToken(String accessToken) {
         AES aes = new AES(tokenSignKey.getBytes(StandardCharsets.UTF_8));
-        String decryptStr = aes.decryptStr(accessToken);
-        // 获取解密后的组成部分
-        String decryptToken = decryptStr.substring(0, 32);
-        // 防止解密后的token是脚本，从而对redis进行攻击，uuid只能是数字和小写字母
-        if (!PrincipalUtil.isSimpleChar(decryptToken)) {
+        try {
+            String decryptStr = aes.decryptStr(accessToken);
+            // 获取解密后的组成部分
+            String decryptToken = decryptStr.substring(0, 32);
+            // 防止解密后的token是脚本，从而对redis进行攻击，uuid只能是数字和小写字母
+            if (!PrincipalUtil.isSimpleChar(decryptToken)) {
+                throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "token error");
+            }
+            // 创建token的时间，token使用时效性，防止攻击者通过一堆的尝试找到aes的密码，虽然aes是目前几乎最好的加密算法
+            long createTokenTime = Long.parseLong(decryptStr.substring(32, 45));
+            // 系统类型
+            int sysType = Integer.parseInt(decryptStr.substring(45));
+            // token的过期时间
+            Integer expiresIn = getExpiresIn(sysType);
+            long seconds = 1000L;
+            if (System.currentTimeMillis() - createTokenTime > expiresIn * seconds) {
+                throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "token error");
+            }
+
+            return decryptToken;
+        } catch (Exception e) {
             throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "token error");
         }
-        // 创建token的时间，token使用时效性，防止攻击者通过一堆的尝试找到aes的密码，虽然aes是目前几乎最好的加密算法
-        long createTokenTime = Long.parseLong(decryptStr.substring(32,45));
-        // 系统类型
-        int sysType = Integer.parseInt(decryptStr.substring(45));
-        // token的过期时间
-        Integer expiresIn = getExpiresIn(sysType);
-        long seconds = 1000L;
-        if (System.currentTimeMillis() - createTokenTime > expiresIn * seconds) {
-            throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "token error");
-        }
-        
-        return decryptToken;
+
     }
 
     /**
      * 对 token 进行加密
+     *
      * @param accessToken accessToken
-     * @param sysType 系统类型
+     * @param sysType     系统类型
      * @return 加密后的 token
      */
     private String encryptToken(String accessToken, Integer sysType) {
@@ -208,7 +217,7 @@ public class TokenManager {
     private String getApprovalKey(UserInfoInTokenBO userInfoInTokenBO) {
         return getApprovalKey(userInfoInTokenBO.getSysType().toString(), userInfoInTokenBO.getUserId());
     }
-    
+
     private String getApprovalKey(String sysType, String userId) {
         return userId == null ? sysType : sysType + StrUtil.COLON + userId;
     }
@@ -238,14 +247,15 @@ public class TokenManager {
         tokenInfoVO.setAccessToken(tokenInfoBO.getAccessToken());
         tokenInfoVO.setRefreshToken(tokenInfoBO.getRefreshToken());
         tokenInfoVO.setExpiresIn(tokenInfoBO.getExpiresIn());
-        
+
         return tokenInfoVO;
     }
 
     /**
      * 删除全部token
+     *
      * @param sysType 系统类型
-     * @param userId 用户 id
+     * @param userId  用户 id
      */
     public void deleteAllToken(String sysType, String userId) {
         String uidKey = getUserIdToAccessKey(getApprovalKey(sysType, userId));
@@ -267,5 +277,40 @@ public class TokenManager {
         }
         // 删除对应的uidKey
         redisTemplate.delete(uidKey);
+    }
+
+    public void deleteCurrentToken(String accessToken) {
+        String decryptToken = decryptToken(accessToken);
+        UserInfoInTokenBO userInfoInToken = getUserInfoByAccessToken(accessToken, true);
+        String uidKey = getUserIdToAccessKey(getApprovalKey(String.valueOf(userInfoInToken.getSysType()), userInfoInToken.getUserId()));
+        Long size = redisTemplate.opsForSet().size(uidKey);
+        if (size == null || size == 0) {
+            return;
+        }
+        // 取出uidKey对应的数据并移除
+        List<String> tokenInfoBoList = stringRedisTemplate.opsForSet().pop(uidKey, size);
+        if (CollUtil.isEmpty(tokenInfoBoList)) {
+            return;
+        }
+        ArrayList<byte[]> list = new ArrayList<>();
+        // 删除用户的当前token，该用户的其它token再次组装
+        for (String accessTokenWithRefreshToken : tokenInfoBoList) {
+            String[] accessTokenWithRefreshTokenArr = accessTokenWithRefreshToken.split(StrUtil.COLON);
+            String accessTokenOne = accessTokenWithRefreshTokenArr[0];
+            if (accessTokenOne.equals(decryptToken)) {
+                String refreshTokenOne = accessTokenWithRefreshTokenArr[1];
+                redisTemplate.delete(getAccessKey(accessTokenOne));
+                redisTemplate.delete(getRefreshToAccessKey(refreshTokenOne));
+                continue;
+            }
+            list.add(accessTokenWithRefreshToken.getBytes(StandardCharsets.UTF_8));
+        }
+        // 组装完毕后进行填充
+        if (CollUtil.isNotEmpty(list)) {
+            redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
+                redisConnection.sAdd(uidKey.getBytes(StandardCharsets.UTF_8), ArrayUtil.toArray(list, byte[].class));
+                return null;
+            });
+        }
     }
 }
