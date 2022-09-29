@@ -2,10 +2,14 @@ package com.taoyes3.credit.sys.controller;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.taoyes3.credit.common.exception.CreditBindException;
 import com.taoyes3.credit.common.util.PageParam;
+import com.taoyes3.credit.security.common.enums.SysTypeEnum;
+import com.taoyes3.credit.security.common.manager.TokenManager;
 import com.taoyes3.credit.security.common.util.AuthUserContext;
 import com.taoyes3.credit.sys.constant.Constant;
+import com.taoyes3.credit.sys.dto.UpdatePasswordDto;
 import com.taoyes3.credit.sys.model.SysUser;
 import com.taoyes3.credit.sys.model.SysUserRole;
 import com.taoyes3.credit.sys.service.SysUserRoleService;
@@ -33,9 +37,11 @@ public class SysUserController {
     private SysUserService sysUserService;
     @Resource
     private SysUserRoleService sysUserRoleService;
-    @Resource;
+    @Resource
     private PasswordEncoder passwordEncoder;
-    
+    @Resource
+    private TokenManager tokenManager;
+
     @GetMapping
     public ResponseEntity<PageParam<SysUser>> index(String username, PageParam<SysUser> pageParam) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
@@ -43,7 +49,7 @@ public class SysUserController {
         PageParam<SysUser> sysUsers = sysUserService.page(pageParam, wrapper);
         return ResponseEntity.ok(sysUsers);
     }
-    
+
     @PostMapping
     public ResponseEntity<Object> store(@Valid @RequestBody SysUser sysUser) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
@@ -57,7 +63,7 @@ public class SysUserController {
         sysUserService.saveUserAndUserRole(sysUser);
         return ResponseEntity.ok().build();
     }
-    
+
     @PutMapping
     public ResponseEntity<Object> update(@Valid @RequestBody SysUser sysUser) {
         log.info("sysUser对象：{}", sysUser);
@@ -69,19 +75,19 @@ public class SysUserController {
         // 密码加密
         String password = StrUtil.isBlank(sysUser.getPassword()) ? null : sysUser.getPassword();
         sysUser.setPassword(passwordEncoder.encode(password));
-        
+
         if (Objects.equals(1L, sysUser.getId()) && sysUser.getStatus() == 0) {
             throw new CreditBindException("admin用户不可以被禁用");
         }
         sysUserService.updateUserAndUserRole(sysUser);
         return ResponseEntity.ok().build();
     }
-    
+
     @DeleteMapping
     public ResponseEntity<Object> delete(@RequestBody List<Long> ids) {
         // Constant.SUPER_ADMIN_ID 类型需要为Long,
         // contains会比较Constant.SUPER_ADMIN_ID和ids内部（即子元素）的数据类型
-        if (ids.contains(Constant.SUPER_ADMIN_ID)) {      
+        if (ids.contains(Constant.SUPER_ADMIN_ID)) {
             throw new CreditBindException("系统管理员不能删除");
         }
         // 前用户不能删除 
@@ -91,7 +97,7 @@ public class SysUserController {
         sysUserService.deleteBatch(ids);
         return ResponseEntity.ok().build();
     }
-    
+
     @GetMapping("/info/{id}")
     public ResponseEntity<SysUser> info(@PathVariable Long id) {
         SysUser sysUser = sysUserService.getById(id);
@@ -104,10 +110,26 @@ public class SysUserController {
 
     /**
      * 获取登录的用户信息
+     *
      * @return
      */
     @GetMapping("/info")
     public ResponseEntity<SysUser> info() {
         return ResponseEntity.ok(sysUserService.getById(AuthUserContext.get().getUserId()));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<Object> password(@RequestBody UpdatePasswordDto passwordDto) {
+        Long userId = Long.valueOf(AuthUserContext.get().getUserId());
+        SysUser sysUser = sysUserService.getById(userId);
+        if (!passwordEncoder.matches(passwordDto.getPassword(), sysUser.getPassword())) {
+            throw new CreditBindException("原密码不正确");
+        }
+        String newPassword = passwordEncoder.encode(passwordDto.getNewPassword());
+        // 更新密码
+        sysUserService.update(new LambdaUpdateWrapper<SysUser>().eq(SysUser::getId, userId).set(SysUser::getPassword, newPassword));
+        // 清除所有 token
+        tokenManager.deleteAllToken(String.valueOf(SysTypeEnum.ADMIN.getValue()), String.valueOf(userId));
+        return ResponseEntity.ok().build();
     }
 }

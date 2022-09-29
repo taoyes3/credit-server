@@ -26,9 +26,9 @@ public class PasswordCheckManager {
      * 半小时内最多错误10次
      */
     private static final int TIMES_CHECK_INPUT_PASSWORD_NUM = 10;
-    
+
     private static final String CHECK_VALID_CODE_NUM_PREFIX = "checkUserInputErrorPassword_";
-    
+
     public void checkPassword(SysTypeEnum sysTypeEnum, String usernameOrMobile, String rawPassword, String encodedPassword) {
         String checkPrefix = sysTypeEnum.getValue() + CHECK_VALID_CODE_NUM_PREFIX + IPHelper.getIpAddr();
         int count = 0;
@@ -41,7 +41,7 @@ public class PasswordCheckManager {
         // 半小时后失效
         redisUtil.set(checkPrefix + usernameOrMobile, count, 1800);
         // 密码不正确
-        if (StrUtil.isBlank(encodedPassword) || passwordEncoder.matches(rawPassword, encodedPassword)) {
+        if (StrUtil.isBlank(encodedPassword) || !passwordEncoder.matches(rawPassword, encodedPassword)) {
             count++;
             // 半小时后失效
             redisUtil.set(checkPrefix + usernameOrMobile, count, 1800);

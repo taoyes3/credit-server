@@ -1,5 +1,6 @@
 package com.taoyes3.credit.security.common.manager;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.IdUtil;
@@ -239,5 +240,32 @@ public class TokenManager {
         tokenInfoVO.setExpiresIn(tokenInfoBO.getExpiresIn());
         
         return tokenInfoVO;
+    }
+
+    /**
+     * 删除全部token
+     * @param sysType 系统类型
+     * @param userId 用户 id
+     */
+    public void deleteAllToken(String sysType, String userId) {
+        String uidKey = getUserIdToAccessKey(getApprovalKey(sysType, userId));
+        Long size = redisTemplate.opsForSet().size(uidKey);
+        if (size == null || size == 0) {
+            return;
+        }
+        List<String> tokenInfoBoList = stringRedisTemplate.opsForSet().pop(uidKey, size);
+        if (CollUtil.isEmpty(tokenInfoBoList)) {
+            return;
+        }
+        // 根据uidKey找到用户对应的所有accessToken、refreshToken并删除
+        for (String accessTokenWithRefreshToken : tokenInfoBoList) {
+            String[] accessTokenWithRefreshTokenArr = accessTokenWithRefreshToken.split(StrUtil.COLON);
+            String accessToken = accessTokenWithRefreshTokenArr[0];
+            String refreshToken = accessTokenWithRefreshTokenArr[1];
+            redisTemplate.delete(getAccessKey(accessToken));
+            redisTemplate.delete(getRefreshToAccessKey(refreshToken));
+        }
+        // 删除对应的uidKey
+        redisTemplate.delete(uidKey);
     }
 }
