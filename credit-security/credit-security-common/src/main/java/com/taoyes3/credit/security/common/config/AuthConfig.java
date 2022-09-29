@@ -4,6 +4,7 @@ import cn.hutool.core.util.ArrayUtil;
 import com.taoyes3.credit.security.common.adapter.AuthConfigAdapter;
 import com.taoyes3.credit.security.common.adapter.DefaultAuthConfigAdapter;
 import com.taoyes3.credit.security.common.filter.AuthFilter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,7 @@ import javax.servlet.DispatcherType;
  */
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
+@Slf4j
 public class AuthConfig {
     @Resource
     private AuthFilter authFilter;

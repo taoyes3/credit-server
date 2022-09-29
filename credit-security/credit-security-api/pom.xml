@@ -3,23 +3,25 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>credit</artifactId>
+        <artifactId>credit-security</artifactId>
         <groupId>com.taoyes3</groupId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>credit-security</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>credit-security-common</module>
-        <module>credit-security-admin</module>
-        <module>credit-security-api</module>
-    </modules>
+    <artifactId>credit-security-api</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.taoyes3</groupId>
+            <artifactId>credit-security-common</artifactId>
+            <version>${taoyes3.credit.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>
