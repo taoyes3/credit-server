@@ -21,7 +21,6 @@ public class ResourceServerAdapter extends DefaultAuthConfigAdapter {
 
     @Override
     public List<String> excludePathPatterns() {
-        log.info("EXCLUDE_PATH的值：11111111");
         return EXCLUDE_PATH;
     }
 }

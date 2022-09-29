@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.taoyes3.credit.common.exception.CreditBindException;
 import com.taoyes3.credit.common.util.PageParam;
+import com.taoyes3.credit.security.common.util.AuthUserContext;
 import com.taoyes3.credit.sys.constant.Constant;
 import com.taoyes3.credit.sys.model.SysUser;
 import com.taoyes3.credit.sys.model.SysUserRole;
@@ -11,6 +12,7 @@ import com.taoyes3.credit.sys.service.SysUserRoleService;
 import com.taoyes3.credit.sys.service.SysUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -31,6 +33,8 @@ public class SysUserController {
     private SysUserService sysUserService;
     @Resource
     private SysUserRoleService sysUserRoleService;
+    @Resource;
+    private PasswordEncoder passwordEncoder;
     
     @GetMapping
     public ResponseEntity<PageParam<SysUser>> index(String username, PageParam<SysUser> pageParam) {
@@ -48,7 +52,8 @@ public class SysUserController {
         if (user != null) {
             throw new CreditBindException("该用户已存在");
         }
-        // TODO: 2022/9/19 密码加密 
+        // 密码加密 
+        sysUser.setPassword(passwordEncoder.encode(sysUser.getPassword()));
         sysUserService.saveUserAndUserRole(sysUser);
         return ResponseEntity.ok().build();
     }
@@ -61,9 +66,9 @@ public class SysUserController {
         if (userInfo != null && !Objects.equals(userInfo.getId(), sysUser.getId())) {
             throw new CreditBindException("该用户已存在");
         }
-        // TODO: 2022/9/21 密码加密
+        // 密码加密
         String password = StrUtil.isBlank(sysUser.getPassword()) ? null : sysUser.getPassword();
-        sysUser.setPassword(password);
+        sysUser.setPassword(passwordEncoder.encode(password));
         
         if (Objects.equals(1L, sysUser.getId()) && sysUser.getStatus() == 0) {
             throw new CreditBindException("admin用户不可以被禁用");
@@ -79,7 +84,10 @@ public class SysUserController {
         if (ids.contains(Constant.SUPER_ADMIN_ID)) {      
             throw new CreditBindException("系统管理员不能删除");
         }
-        // TODO: 2022/9/21 当前用户不能删除 
+        // 前用户不能删除 
+        if (ids.contains(Long.valueOf(AuthUserContext.get().getUserId()))) {
+            throw new CreditBindException("当前用户不能删除");
+        }
         sysUserService.deleteBatch(ids);
         return ResponseEntity.ok().build();
     }
@@ -96,9 +104,10 @@ public class SysUserController {
 
     /**
      * 获取登录的用户信息
+     * @return
      */
     @GetMapping("/info")
-    public void info() {
-        
+    public ResponseEntity<SysUser> info() {
+        return ResponseEntity.ok(sysUserService.getById(AuthUserContext.get().getUserId()));
     }
 }
