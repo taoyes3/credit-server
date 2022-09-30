@@ -279,6 +279,10 @@ public class TokenManager {
         redisTemplate.delete(uidKey);
     }
 
+    /**
+     * 删除当前 token
+     * @param accessToken
+     */
     public void deleteCurrentToken(String accessToken) {
         String decryptToken = decryptToken(accessToken);
         UserInfoInTokenBO userInfoInToken = getUserInfoByAccessToken(accessToken, true);
@@ -312,5 +316,28 @@ public class TokenManager {
                 return null;
             });
         }
+    }
+
+    /**
+     * 刷新token，并返回新的token
+     * @param refreshToken
+     * @return
+     */
+    public TokenInfoBO refreshToken(String refreshToken) {
+        if (StrUtil.isBlank(refreshToken)) {
+            throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "refreshToken is blank");
+        }
+        String realRefreshToken = decryptToken(refreshToken);
+        String accessToken = stringRedisTemplate.opsForValue().get(getRefreshToAccessKey(realRefreshToken));
+        if (StrUtil.isBlank(accessToken)) {
+            throw new CreditBindException(HttpStatus.UNAUTHORIZED.value(), "refreshToken 已过期");
+        }
+        UserInfoInTokenBO userInfoInTokenBO = getUserInfoByAccessToken(accessToken, false);
+        // 删除旧的refresh_token
+        stringRedisTemplate.delete(getRefreshToAccessKey(realRefreshToken));
+        // 删除旧的access_token
+        stringRedisTemplate.delete(getAccessKey(accessToken));
+        // 保存一份新的token
+        return storeAccessToken(userInfoInTokenBO);
     }
 }
